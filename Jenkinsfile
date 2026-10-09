@@ -5,6 +5,7 @@ pipeline {
         stage("one"){
             steps{
                  sh 'node --version'
+                 echo 'This step is completed AA.'
                 sleep 10 
             }
         }
