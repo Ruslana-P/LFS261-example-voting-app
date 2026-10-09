@@ -6,7 +6,7 @@ pipeline {
             steps{
                  sh 'node --version'
                  echo 'This step is completed AA.'
-                sleep 10 
+                sleep 20
             }
         }
 
