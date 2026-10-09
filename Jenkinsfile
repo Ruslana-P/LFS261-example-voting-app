@@ -1,25 +1,15 @@
 pipeline {
-    agent any 
+    agent docker { image 'node:20.16.0-alpine3.20' } 
 
     stages{
         stage("one"){
             steps{
-                echo 'step 1'
-                sleep 3
+                 sh 'node --version'
+                sleep 10 
             }
         }
-        stage("two"){
-            steps{
-                echo 'step 2'
-                sleep 9
-            }
-        }
-        stage("three"){
-            steps{
-                echo 'step 3'
-                sleep 5
-            }
-        }
+
+
     } 
 
     post{
