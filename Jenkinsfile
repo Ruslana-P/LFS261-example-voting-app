@@ -1,30 +1,40 @@
 pipeline {
-    agent any 
+    agent docker{
+        image 'maven:3.9.8-sapmachine-21'
+        args '-v $HOME/.m2:/root/.m2'
+        }
+    } 
 
     stages{
-        stage("one"){
+        stage("build"){
             steps{
-                echo 'step 1'
-                sleep 3
+                echo 'nuilding worker app'
+                dir("worker") {
+                    sh 'mvn compile'
+                }
             }
         }
-        stage("two"){
+        stage("test"){
             steps{
-                echo 'step 2'
-                sleep 9
+                echo 'running unit tets on worker app'
+                dir("worker") {
+                    sh 'mvn clean test'
+                }
             }
         }
-        stage("three"){
+        stage("package"){
             steps{
-                echo 'step 3'
-                sleep 5
+               echo 'packaging worker app into a jarfile'
+                dir('worker'){ sh 'mvn package -DskipTests'
+                archiveArtifacts artifacts:    '**/target/*.jar',
+                    fingerprint: true
             }
         }
     } 
 
     post{
       always{
-          echo 'This pipeline is completed.'
+          echo 'This job is completed.'
       }
     }
 }
