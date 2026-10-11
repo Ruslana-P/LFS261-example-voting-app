@@ -1,53 +1,74 @@
 pipeline {
-  agent {
-    docker {
-      image 'maven:3.9.8-sapmachine-21'
-      args '-v $HOME/.m2:/root/.m2'
-    }
-  }
-  stages {
-    stage('build') {
-      steps {
-        echo 'building worker app'
-        dir('worker') {
-          sh 'mvn compile'
+    agent none
+
+    stages {
+        stage('build') {
+            when {
+                changeset '**/worker/**'
+            }
+            agent {
+                docker {
+                    image 'maven:3.9.8-sapmachine-21'
+                    args '-v $HOME/.m2:/root/.m2'
+                }
+            }
+            steps {
+                dir('worker') {
+                    sh 'mvn compile'
+                }
+            }
         }
-      }
-    }
-    stage('test') {
-      steps {
-        echo 'running unit tests on worker app'
-        dir('worker') {
-          sh 'mvn clean test'
+
+        stage('test') {
+            when {
+                changeset '**/worker/**'
+            }
+            agent {
+                docker {
+                    image 'maven:3.9.8-sapmachine-21'
+                    args '-v $HOME/.m2:/root/.m2'
+                }
+            }
+            steps {
+                dir('worker') {
+                    sh 'mvn test'
+                }
+            }
         }
-      }
-    }
-    stage('package') {
-      steps {
-        echo 'packaging worker app into a jar file'
-        dir('worker') {
-          sh 'mvn package -DskipTests'
-          archiveArtifacts artifacts: '**/target/*.jar', fingerprint: true
+
+        stage('package') {
+            when {
+                branch 'master'
+                changeset '**/worker/**'
+            }
+            agent {
+                docker {
+                    image 'maven:3.9.8-sapmachine-21'
+                    args '-v $HOME/.m2:/root/.m2'
+                }
+            }
+            steps {
+                dir('worker') {
+                    sh 'mvn package'
+                }
+            }
         }
-      }
-    }
-    stage('docker-package') {
-      agent any
-      steps {
-        echo 'Packaging worker app with docker'
-        script {
-          docker.withRegistry('https://index.docker.io/v1/', 'dockerlogin') {
-            def workerImage = docker.build("student1mouse/worker:v${env.BUILD_ID}", "./worker")
-            workerImage.push()
-            workerImage.push('latest')
-          }
+
+        stage('docker-package') {
+            when {
+                branch 'master'
+                changeset '**/worker/**'
+            }
+            agent any
+            steps {
+                script {
+                    docker.withRegistry('https://registry-1.docker.io', 'dockerlogin') {
+                        def customImage = docker.build("student1mouse/worker:v${env.BUILD_ID}", "./worker")
+                        customImage.push()
+                        customImage.push('latest')
+                    }
+                }
+            }
         }
-      }
     }
-  }
-  post {
-    always {
-      echo 'the job is complete'
-    }
-  }
 }
