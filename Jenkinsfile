@@ -1,9 +1,6 @@
 pipeline {
-
   agent none
-
   stages {
-
     stage('worker-build') {
       agent {
         docker {
@@ -21,7 +18,6 @@ pipeline {
         }
       }
     }
-
     stage('worker-test') {
       agent {
         docker {
@@ -39,7 +35,6 @@ pipeline {
         }
       }
     }
-
     stage('worker-package') {
       agent {
         docker {
@@ -59,7 +54,6 @@ pipeline {
         }
       }
     }
-
     stage('worker-docker-package') {
       agent any
       when {
@@ -78,7 +72,6 @@ pipeline {
         }
       }
     }
-
     stage('result-build') {
       agent {
         docker {
@@ -95,7 +88,6 @@ pipeline {
         }
       }
     }
-
     stage('result-test') {
       agent {
         docker {
@@ -113,7 +105,6 @@ pipeline {
         }
       }
     }
-
     stage('result-docker-package') {
       agent any
       when {
@@ -132,7 +123,6 @@ pipeline {
         }
       }
     }
-
     stage('vote-build') {
       agent {
         docker {
@@ -150,7 +140,6 @@ pipeline {
         }
       }
     }
-
     stage('vote-test') {
       agent {
         docker {
@@ -169,7 +158,19 @@ pipeline {
         }
       }
     }
-
+    stage('vote integration') {
+      agent any
+      when {
+        changeset '**/vote/**'
+        branch 'master'
+      }
+      steps {
+        echo 'Running Integration Tests on vote app'
+        dir('vote') {
+          sh 'sh integration_test.sh'
+        }
+      }
+    }
     stage('vote-docker-package') {
       agent any
       when {
@@ -188,40 +189,28 @@ pipeline {
         }
       }
     }
-  }
-
     stage('Sonarqube') {
       agent any
-      when{
+      when {
         branch 'master'
       }
-      // tools {
-       // jdk "JDK11" // the name you have given the JDK installation in Global Tool Configuration
-     // }
-
-      environment{
+      environment {
         sonarpath = tool 'SonarScanner'
       }
-
       steps {
-            echo 'Running Sonarqube Analysis..'
-            withSonarQubeEnv('sonar-instavote') {
-              sh "${sonarpath}/bin/sonar-scanner -Dproject.settings=sonar-project.properties -Dorg.jenkinsci.plugins.durabletask.BourneShellScript.HEARTBEAT_CHECK_INTERVAL=86400"
-            }
+        echo 'Running Sonarqube Analysis..'
+        withSonarQubeEnv('sonar-instavote') {
+          sh "${sonarpath}/bin/sonar-scanner -Dproject.settings=sonar-project.properties -Dorg.jenkinsci.plugins.durabletask.BourneShellScript.HEARTBEAT_CHECK_INTERVAL=86400"
+        }
       }
     }
-
-
-    stage("Quality Gate") {
-        steps {
-            timeout(time: 1, unit: 'HOURS') {
-                // Parameter indicates whether to set pipeline to UNSTABLE if Quality Gate fails
-                // true = set pipeline to UNSTABLE, false = don't
-                waitForQualityGate abortPipeline: true
-            }
+    stage('Quality Gate') {
+      steps {
+        timeout(time: 1, unit: 'HOURS') {
+          waitForQualityGate abortPipeline: true
         }
+      }
     }
-
     stage('deploy to dev') {
       agent any
       when {
@@ -232,7 +221,7 @@ pipeline {
         sh 'docker compose up -d'
       }
     }
-
+  }
   post {
     always {
       echo 'Building mono pipeline for voting app is completed.'
